@@ -28,6 +28,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.kie.server.api.model.KieContainerStatus;
 import org.kie.server.controller.api.model.spec.ContainerSpec;
+import org.kie.server.controller.client.exception.KieServerControllerHTTPClientException;
 
 @Mojo( name = "dispose-container", defaultPhase = LifecyclePhase.DEPLOY, threadSafe = true, requiresProject = false)
 public class DisposeContainerMojo extends KieControllerMojo {
@@ -59,8 +60,8 @@ public class DisposeContainerMojo extends KieControllerMojo {
         } catch (NotFoundException containerNotFoundException) {
             getLog().info("Container " + container + " not found on server template " + templateId + ". Skip that task");
             return;
-        } catch (ResponseProcessingException exception) {
-            if (exception.getResponse().getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
+        } catch (KieServerControllerHTTPClientException exception) {
+            if (exception.getResponseCode() == Response.Status.NOT_FOUND.getStatusCode()) {
                 getLog().info("Container " + container + " not found on server template " + templateId + ". Skip that task");
                 return;
             } else {
@@ -68,7 +69,8 @@ public class DisposeContainerMojo extends KieControllerMojo {
             }
         }
 
-        if (KieContainerStatus.STARTED.equals(containerSpec.getStatus())) {
+        if (!KieContainerStatus.STARTED.equals(containerSpec.getStatus())) {
+        } else {
             kieControllerGateway.stopContainer(templateId, container);
             getLog().info("Container " + container + " STOPPED on server template " + templateId);
         }
